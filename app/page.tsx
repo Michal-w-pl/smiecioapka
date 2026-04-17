@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Search,
   MapPin,
@@ -179,7 +179,7 @@ async function geocodeAddress(query: string): Promise<LocationResult[]> {
       return data.results;
     }
   } catch {
-    // fallback lokalny niżej
+    // fallback niżej
   }
 
   const normalizedInput = slugify(cleaned);
@@ -227,74 +227,68 @@ async function fetchSchedule(location: LocationResult) {
 
 function Pill({
   children,
-  variant = "default",
+  variant = "outline",
 }: {
   children: React.ReactNode;
-  variant?: "default" | "secondary" | "outline" | "destructive";
+  variant?: "outline" | "soft" | "dark" | "danger";
 }) {
-  const classes =
-    variant === "outline"
-      ? "border border-slate-300 bg-white text-slate-700"
-      : variant === "secondary"
-        ? "bg-slate-100 text-slate-700"
-        : variant === "destructive"
-          ? "bg-red-100 text-red-700"
-          : "bg-slate-900 text-white";
+  const className =
+    variant === "soft"
+      ? "pill pill-soft"
+      : variant === "dark"
+        ? "pill pill-dark"
+        : variant === "danger"
+          ? "pill pill-danger"
+          : "pill pill-outline";
 
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs ${classes}`}>
-      {children}
-    </span>
-  );
+  return <span className={className}>{children}</span>;
 }
 
 function ResultBadge({ status }: { status: string }) {
   if (status === "ok") {
     return (
-      <Pill>
-        <CheckCircle2 className="h-3.5 w-3.5" /> Harmonogram znaleziony
+      <Pill variant="dark">
+        <CheckCircle2 size={14} /> Harmonogram znaleziony
       </Pill>
     );
   }
 
   if (status === "error") {
     return (
-      <Pill variant="destructive">
-        <AlertCircle className="h-3.5 w-3.5" /> Błąd
+      <Pill variant="danger">
+        <AlertCircle size={14} /> Błąd
       </Pill>
     );
   }
 
   return (
-    <Pill variant="secondary">
-      <AlertCircle className="h-3.5 w-3.5" /> Wymaga integracji źródła
+    <Pill variant="soft">
+      <AlertCircle size={14} /> Wymaga integracji źródła
     </Pill>
   );
 }
 
 function ScheduleList({ items }: { items: ScheduleItem[] }) {
-  const grouped = groupByDate(items);
+  const grouped = useMemo(() => groupByDate(items), [items]);
   const dates = Object.keys(grouped).sort();
 
   return (
-    <div className="space-y-4">
+    <div className="schedule-list">
       {dates.map((date) => (
-        <div key={date} className="rounded-2xl border bg-white shadow-sm">
-          <div className="px-6 pb-3 pt-6">
-            <div className="text-base font-semibold">{formatDate(date)}</div>
-          </div>
-          <div className="space-y-2 px-6 pb-6 pt-0">
+        <div key={date} className="schedule-day">
+          <div className="schedule-day-head">{formatDate(date)}</div>
+          <div className="schedule-day-body">
             {grouped[date].map((item, idx) => (
-              <div key={`${date}-${idx}`} className="flex items-start justify-between gap-3 rounded-xl border p-3">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-xl border p-2">
-                    <Trash2 className="h-4 w-4" />
+              <div key={`${date}-${idx}`} className="schedule-item">
+                <div className="schedule-item-left">
+                  <div className="icon-box" style={{ width: 40, height: 40, borderRadius: 14 }}>
+                    <Trash2 size={18} />
                   </div>
                   <div>
-                    <div className="font-medium">
+                    <div className="schedule-item-title">
                       {FRACTION_LABELS[item.fraction] || item.fraction}
                     </div>
-                    {item.note ? <div className="text-sm text-slate-500">{item.note}</div> : null}
+                    {item.note ? <div className="schedule-item-note">{item.note}</div> : null}
                   </div>
                 </div>
                 <Pill variant="outline">Odbiór</Pill>
@@ -314,7 +308,7 @@ export default function WasteSchedulePolandApp() {
   const [matches, setMatches] = useState<LocationResult[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<LocationResult | null>(null);
   const [providerResult, setProviderResult] = useState<ProviderResult>(null);
-  const [activeTab, setActiveTab] = useState<"schedule" | "sources">("schedule");
+  const [tab, setTab] = useState<"schedule" | "sources">("schedule");
 
   async function handleSearch() {
     setLoading(true);
@@ -359,7 +353,7 @@ export default function WasteSchedulePolandApp() {
   async function handleResolve(location: LocationResult) {
     setSelectedLocation(location);
     setProviderResult({ status: "loading" });
-    setActiveTab("schedule");
+    setTab("schedule");
 
     try {
       const result = await fetchSchedule(location);
@@ -374,54 +368,49 @@ export default function WasteSchedulePolandApp() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[28px] border bg-white shadow-sm">
-            <div className="p-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl border p-3">
-                  <CalendarDays className="h-6 w-6" />
+    <div className="page">
+      <div className="shell stack">
+        <div className="hero-grid">
+          <section className="card">
+            <div className="card-inner">
+              <div className="hero-head">
+                <div className="icon-box">
+                  <CalendarDays size={28} />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-semibold">Harmonogram wywozu śmieci – Polska</h1>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                  <h1 className="hero-title">Harmonogram wywozu śmieci – Polska</h1>
+                  <p className="hero-subtitle">
                     Wpisz adres, a aplikacja sprawdzi harmonogram przez backend i publicznie dostępne źródła.
                   </p>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-4 px-6 pb-6">
-              <div className="flex flex-col gap-3 md:flex-row">
-                <div className="relative flex-1">
-                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <div className="search-row">
+                <div className="search-input-wrap">
+                  <MapPin size={18} className="search-icon" />
                   <input
+                    className="search-input"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="np. ul. Mickiewicza 12, Kobyłka"
-                    className="h-12 w-full rounded-2xl border bg-white pl-10 pr-4 outline-none ring-0"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSearch();
                     }}
                   />
                 </div>
 
-                <button
-                  onClick={handleSearch}
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-slate-900 px-5 text-white"
-                >
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                <button className="btn btn-primary" onClick={handleSearch}>
+                  {loading ? <Loader2 size={18} className="spin" /> : <Search size={18} />}
                   Szukaj
                 </button>
               </div>
 
-              <div className="rounded-2xl border bg-white p-4">
-                <div className="flex items-start gap-3">
-                  <Database className="mt-0.5 h-4 w-4" />
+              <div className="info-box">
+                <div className="info-box-head">
+                  <Database size={18} />
                   <div>
-                    <div className="font-medium">Jak to działa</div>
-                    <div className="mt-1 text-sm leading-6 text-slate-500">
+                    <div className="info-title">Jak to działa</div>
+                    <div className="info-text">
                       Aplikacja wysyła adres do backendu, backend geokoduje lokalizację, dobiera źródło publiczne i
                       zwraca harmonogram albo oficjalne linki źródłowe. Dla części gmin nadal mogą być potrzebne
                       dodatkowe parsery HTML lub PDF.
@@ -431,235 +420,213 @@ export default function WasteSchedulePolandApp() {
               </div>
 
               {error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 h-4 w-4" />
+                <div className="error-box">
+                  <div className="error-box-head">
+                    <AlertCircle size={18} />
                     <div>
-                      <div className="font-medium">Błąd</div>
-                      <div className="mt-1 text-sm">{error}</div>
+                      <div className="error-title">Błąd</div>
+                      <div className="error-text">{error}</div>
                     </div>
                   </div>
                 </div>
               ) : null}
             </div>
-          </div>
+          </section>
 
-          <div className="rounded-[28px] border bg-white shadow-sm">
-            <div className="p-6">
-              <h2 className="text-lg font-semibold">Stan projektu</h2>
-              <p className="text-sm text-slate-500">Co już jest gotowe, a co trzeba dołożyć w wersji produkcyjnej.</p>
+          <aside className="card">
+            <div className="card-inner">
+              <h2 className="section-title">Stan projektu</h2>
+              <p className="section-desc">Co już jest gotowe, a co trzeba dołożyć w wersji produkcyjnej.</p>
+
+              <div className="info-list">
+                <div className="mini-card">
+                  <div className="mini-title">Gotowe teraz</div>
+                  <p className="mini-text">
+                    Wyszukiwanie adresu przez backend, normalizacja danych, pobranie harmonogramu lub oficjalnych
+                    źródeł i prezentacja wyniku.
+                  </p>
+                </div>
+
+                <div className="mini-card">
+                  <div className="mini-title">Do wdrożenia produkcyjnego</div>
+                  <p className="mini-text">
+                    Backend proxy, parsery HTML/PDF, cache wyników, baza providerów oraz monitoring zmian na stronach
+                    gmin.
+                  </p>
+                </div>
+
+                <div className="mini-card">
+                  <div className="mini-title">Realne ograniczenie</div>
+                  <p className="mini-text">
+                    Nie każda publiczna strona pozwala wyliczyć harmonogram po samym adresie. Czasem potrzebny jest
+                    rejon, sektor albo numer umowy.
+                  </p>
+                </div>
+              </div>
             </div>
-
-            <div className="space-y-3 px-6 pb-6 text-sm leading-6">
-              <div className="rounded-2xl border p-4">
-                <div className="font-medium">Gotowe teraz</div>
-                <div className="mt-1 text-slate-500">
-                  Wyszukiwanie adresu przez backend, normalizacja danych, pobranie harmonogramu lub oficjalnych źródeł i
-                  prezentacja wyniku.
-                </div>
-              </div>
-
-              <div className="rounded-2xl border p-4">
-                <div className="font-medium">Do wdrożenia produkcyjnego</div>
-                <div className="mt-1 text-slate-500">
-                  Backend proxy, parsery HTML/PDF, cache wyników, baza providerów oraz monitoring zmian na stronach
-                  gmin.
-                </div>
-              </div>
-
-              <div className="rounded-2xl border p-4">
-                <div className="font-medium">Realne ograniczenie</div>
-                <div className="mt-1 text-slate-500">
-                  Nie każda publiczna strona pozwala wyliczyć harmonogram po samym adresie. Czasem potrzebny jest rejon,
-                  sektor albo numer umowy.
-                </div>
-              </div>
-            </div>
-          </div>
+          </aside>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-[28px] border bg-white shadow-sm">
-            <div className="p-6">
-              <h2 className="text-lg font-semibold">1. Dopasowane adresy</h2>
-              <p className="text-sm text-slate-500">Wybierz najlepiej dopasowany adres.</p>
-            </div>
+        <div className="content-grid">
+          <section className="card">
+            <div className="card-inner">
+              <h2 className="section-title">1. Dopasowane adresy</h2>
+              <p className="section-desc">Wybierz najlepiej dopasowany adres.</p>
 
-            <div className="space-y-3 px-6 pb-6">
-              {!matches.length ? (
-                <div className="rounded-2xl border border-dashed p-8 text-sm text-slate-500">
-                  Po wyszukaniu adresu zobaczysz tutaj dopasowania z geokodera.
-                </div>
-              ) : (
-                matches.map((item, idx) => (
-                  <div
-                    key={`${item.label}-${idx}`}
-                    className="rounded-2xl border p-4"
-                  >
-                    <div className="space-y-2">
-                      <div className="font-medium">{item.label}</div>
+              <div className="stack" style={{ gap: 12, marginTop: 18 }}>
+                {!matches.length ? (
+                  <div className="empty">Po wyszukaniu adresu zobaczysz tutaj dopasowania z geokodera.</div>
+                ) : (
+                  matches.map((item, idx) => (
+                    <div key={`${item.label}-${idx}`} className="result-card">
+                      <div className="result-top">{item.label}</div>
 
-                      <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                      <div className="badges">
                         {item.municipality ? <Pill variant="outline">gmina: {item.municipality}</Pill> : null}
                         {item.city ? <Pill variant="outline">miejscowość: {item.city}</Pill> : null}
                         {item.suburb ? <Pill variant="outline">dzielnica/rejon: {item.suburb}</Pill> : null}
                         {item.county ? <Pill variant="outline">powiat: {item.county}</Pill> : null}
                       </div>
 
-                      <div className="border-t" />
+                      <div className="separator" />
 
-                      <div className="pt-2">
-                        <button
-                          className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2 text-white"
-                          onClick={() => handleResolve(item)}
-                        >
+                      <div className="actions">
+                        <button className="btn btn-primary" style={{ height: 44 }} onClick={() => handleResolve(item)}>
                           Sprawdź harmonogram
                         </button>
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          </section>
 
-          <div className="rounded-[28px] border bg-white shadow-sm">
-            <div className="p-6">
-              <h2 className="text-lg font-semibold">2. Harmonogram i źródła</h2>
-              <p className="text-sm text-slate-500">
+          <section className="card">
+            <div className="card-inner">
+              <h2 className="section-title">2. Harmonogram i źródła</h2>
+              <p className="section-desc">
                 {selectedLocation ? selectedLocation.label : "Po wyborze adresu pokażę harmonogram albo właściwe źródła publiczne."}
               </p>
-            </div>
 
-            <div className="px-6 pb-6">
-              {!providerResult ? (
-                <div className="rounded-2xl border border-dashed p-8 text-sm text-slate-500">
-                  Brak wybranego adresu.
-                </div>
-              ) : providerResult.status === "loading" ? (
-                <div className="flex items-center gap-3 rounded-2xl border p-8 text-sm text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Pobieranie danych…
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid w-full grid-cols-2 rounded-2xl bg-slate-100 p-1">
-                    <button
-                      className={`rounded-2xl px-3 py-2 text-sm ${activeTab === "schedule" ? "bg-white shadow-sm" : ""}`}
-                      onClick={() => setActiveTab("schedule")}
-                    >
-                      Harmonogram
-                    </button>
-                    <button
-                      className={`rounded-2xl px-3 py-2 text-sm ${activeTab === "sources" ? "bg-white shadow-sm" : ""}`}
-                      onClick={() => setActiveTab("sources")}
-                    >
-                      Źródła
-                    </button>
+              <div style={{ marginTop: 18 }}>
+                {!providerResult ? (
+                  <div className="empty">Brak wybranego adresu.</div>
+                ) : providerResult.status === "loading" ? (
+                  <div className="empty" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Loader2 size={18} className="spin" />
+                    Pobieranie danych…
                   </div>
+                ) : (
+                  <div className="stack" style={{ gap: 16 }}>
+                    <div className="tabs">
+                      <button className={`tab ${tab === "schedule" ? "active" : ""}`} onClick={() => setTab("schedule")}>
+                        Harmonogram
+                      </button>
+                      <button className={`tab ${tab === "sources" ? "active" : ""}`} onClick={() => setTab("sources")}>
+                        Źródła
+                      </button>
+                    </div>
 
-                  {activeTab === "schedule" ? (
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <ResultBadge status={providerResult.status} />
-                      </div>
+                    {tab === "schedule" ? (
+                      <div className="stack" style={{ gap: 16 }}>
+                        <div className="badges">
+                          <ResultBadge status={providerResult.status} />
+                        </div>
 
-                      {providerResult.message ? (
-                        <div className="rounded-2xl border bg-white p-4">
-                          <div className="flex items-start gap-3">
-                            <AlertCircle className="mt-0.5 h-4 w-4" />
-                            <div>
-                              <div className="font-medium">Informacja</div>
-                              <div className="mt-1 text-sm text-slate-500">{providerResult.message}</div>
+                        {providerResult.message ? (
+                          <div className="note-box">
+                            <div className="note-box-head">
+                              <AlertCircle size={18} />
+                              <div>
+                                <div className="note-title">Informacja</div>
+                                <div className="note-text">{providerResult.message}</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ) : null}
+                        ) : null}
 
-                      {providerResult.schedule?.length ? (
-                        <ScheduleList items={providerResult.schedule} />
-                      ) : (
-                        <div className="rounded-2xl border border-dashed p-8 text-sm text-slate-500">
-                          Backend nie zwrócił jeszcze bezpośredniego harmonogramu dla tego adresu.
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {(providerResult.sourceLinks || []).length ? (
-                        (providerResult.sourceLinks || []).map((link, idx) => (
-                          <a
-                            key={`${link.url}-${idx}`}
-                            href={link.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-start justify-between gap-3 rounded-2xl border p-4 transition hover:bg-slate-50"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="rounded-xl border p-2">
-                                {link.type === "pdf-page" || link.type === "pdf" ? (
-                                  <FileText className="h-4 w-4" />
-                                ) : link.type === "form" ? (
-                                  <Building2 className="h-4 w-4" />
-                                ) : (
-                                  <ExternalLink className="h-4 w-4" />
-                                )}
+                        {providerResult.schedule?.length ? (
+                          <ScheduleList items={providerResult.schedule} />
+                        ) : (
+                          <div className="empty">
+                            Backend nie zwrócił jeszcze bezpośredniego harmonogramu dla tego adresu.
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="source-list">
+                        {(providerResult.sourceLinks || []).length ? (
+                          (providerResult.sourceLinks || []).map((link, idx) => (
+                            <a
+                              key={`${link.url}-${idx}`}
+                              href={link.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="source-link"
+                            >
+                              <div className="source-left">
+                                <div className="icon-box" style={{ width: 42, height: 42, borderRadius: 14 }}>
+                                  {link.type === "pdf-page" || link.type === "pdf" ? (
+                                    <FileText size={18} />
+                                  ) : link.type === "form" ? (
+                                    <Building2 size={18} />
+                                  ) : (
+                                    <ExternalLink size={18} />
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="source-title">{link.label}</div>
+                                  <div className="source-url">{link.url}</div>
+                                </div>
                               </div>
-                              <div>
-                                <div className="font-medium">{link.label}</div>
-                                <div className="break-all text-sm text-slate-500">{link.url}</div>
-                              </div>
-                            </div>
-                            <ExternalLink className="mt-1 h-4 w-4 shrink-0" />
-                          </a>
-                        ))
-                      ) : (
-                        <div className="rounded-2xl border border-dashed p-8 text-sm text-slate-500">
-                          Brak linków źródłowych.
-                        </div>
-                      )}
-                    </div>
-                  )}
+                              <ExternalLink size={18} />
+                            </a>
+                          ))
+                        ) : (
+                          <div className="empty">Brak linków źródłowych.</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section className="card">
+          <div className="card-inner">
+            <h2 className="section-title">Jak rozszerzyć do pełnej wersji</h2>
+            <p className="section-desc">Plan techniczny dla ogólnopolskiej obsługi publicznie dostępnych harmonogramów.</p>
+
+            <div className="plan-grid" style={{ marginTop: 18 }}>
+              {[
+                {
+                  title: "1. Registry providerów",
+                  text: "Tabela: gmina / operator / typ źródła / URL / parser / sposób mapowania ulic do rejonów.",
+                },
+                {
+                  title: "2. Backend proxy",
+                  text: "Endpointy pobierające HTML/PDF po stronie serwera, żeby ominąć CORS i ustabilizować parsowanie.",
+                },
+                {
+                  title: "3. Parsery źródeł",
+                  text: "Parser HTML, parser PDF tabelarycznych, opcjonalnie OCR dla skanów oraz walidacja dat i frakcji.",
+                },
+                {
+                  title: "4. Monitoring zmian",
+                  text: "Testy regresyjne i alerty, gdy gmina zmieni layout strony albo podmieni plik harmonogramu.",
+                },
+              ].map((item) => (
+                <div key={item.title} className="plan-card">
+                  <div className="plan-title">{item.title}</div>
+                  <p className="plan-text">{item.text}</p>
                 </div>
-              )}
+              ))}
             </div>
           </div>
-        </div>
-
-        <div className="rounded-[28px] border bg-white shadow-sm">
-          <div className="p-6">
-            <h2 className="text-lg font-semibold">Jak rozszerzyć do pełnej wersji</h2>
-            <p className="text-sm text-slate-500">
-              Plan techniczny dla ogólnopolskiej obsługi publicznie dostępnych harmonogramów.
-            </p>
-          </div>
-
-          <div className="grid gap-4 px-6 pb-6 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                title: "1. Registry providerów",
-                text: "Tabela: gmina / operator / typ źródła / URL / parser / sposób mapowania ulic do rejonów.",
-              },
-              {
-                title: "2. Backend proxy",
-                text: "Endpointy pobierające HTML/PDF po stronie serwera, żeby ominąć CORS i ustabilizować parsowanie.",
-              },
-              {
-                title: "3. Parsery źródeł",
-                text: "Parser HTML, parser PDF tabelarycznych, opcjonalnie OCR dla skanów oraz walidacja dat i frakcji.",
-              },
-              {
-                title: "4. Monitoring zmian",
-                text: "Testy regresyjne i alerty, gdy gmina zmieni layout strony albo podmieni plik harmonogramu.",
-              },
-            ].map((item) => (
-              <div key={item.title} className="rounded-2xl border p-4">
-                <div className="font-medium">{item.title}</div>
-                <div className="mt-2 text-sm leading-6 text-slate-500">{item.text}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );
