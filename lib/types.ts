@@ -15,6 +15,8 @@ export type NormalizedLocation = {
   keyMunicipality: string;
 };
 
+export type GeocodeResult = NormalizedLocation;
+
 export type ScheduleItem = {
   date: string;
   fraction: string;
@@ -37,6 +39,8 @@ export type ScheduleResponse = {
   schedule?: ScheduleItem[];
   sourceLinks?: SourceLink[];
 };
+
+export type ProviderResponse = ScheduleResponse;
 
 export type Provider = {
   id: string;
