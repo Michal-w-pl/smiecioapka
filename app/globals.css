@@ -164,7 +164,7 @@ textarea {
 
 .search-input:focus {
   border-color: #9db6d8;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.10);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
 .btn {
@@ -461,10 +461,6 @@ textarea {
 
 .spin {
   animation: spin 1s linear infinite;
-}
-
-.muted {
-  color: var(--muted);
 }
 
 @keyframes spin {
