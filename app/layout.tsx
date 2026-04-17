@@ -1,13 +1,18 @@
-import './globals.css'
+import "./globals.css";
+
+export const metadata = {
+  title: "Śmiecioapka",
+  description: "Sprawdzanie harmonogramu wywozu odpadów dla adresów w Polsce",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="pl">
       <body>{children}</body>
     </html>
-  )
+  );
 }
