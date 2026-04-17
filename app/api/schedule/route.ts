@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { resolveProvider } from "@/lib/providers";
+import { resolveProvider } from "../../../lib/providers";
 import { NormalizedLocation } from "@/lib/types";
 
 const locationSchema = z.object({
