@@ -33,8 +33,13 @@ export const comdProvider: WasteProvider = {
         .map((item) => ({
           label: item.text || 'Załącznik harmonogramu',
           url: item.href.startsWith('http') ? item.href : new URL(item.href, url).toString(),
-          type: (/\.pdf/i.test(item.href) ? 'pdf' : 'official') as const,
-        }));
+          const linkType: 'pdf' | 'official' = /\.pdf/i.test(item.href) ? 'pdf' : 'official';
+      
+          return links.map((item) => ({
+            label: item.text || 'Załącznik harmonogramu',
+            url: item.href.startsWith('http') ? item.href : new URL(item.href, url).toString(),
+            type: linkType,
+}));
 
       return {
         providerId: this.id,
