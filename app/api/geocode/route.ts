@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { geocodeAddress } from '@/lib/geocode';
+import { geocodeAddress } from "../../../lib/geocode";
 
 const schema = z.object({
   query: z.string().min(2),
