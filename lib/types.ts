@@ -23,6 +23,8 @@ export type ScheduleItem = {
   note?: string;
 };
 
+export type ScheduleEntry = ScheduleItem;
+
 export type SourceLink = {
   label: string;
   url: string;
