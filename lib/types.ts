@@ -18,7 +18,7 @@ export type GeocodeResult = {
 export type SourceLink = {
   label: string;
   url: string;
-  type: 'official' | 'aggregator' | 'search' | 'pdf' | 'form';
+  type: "official" | "pdf" | "pdf-page" | "form" | "aggregator" | "search" | "html";
 };
 
 export type ScheduleEntry = {
