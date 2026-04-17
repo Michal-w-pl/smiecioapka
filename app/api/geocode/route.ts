@@ -13,9 +13,7 @@ export async function POST(request: NextRequest) {
 
     const results = await geocodeAddress(query);
 
-    return NextResponse.json({
-      results,
-    });
+    return NextResponse.json({ results });
   } catch (error) {
     return NextResponse.json(
       {
