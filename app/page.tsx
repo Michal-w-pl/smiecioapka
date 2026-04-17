@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
 import {
   Search,
   MapPin,
@@ -377,11 +376,7 @@ export default function WasteSchedulePolandApp() {
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"
-        >
+       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-[28px] border bg-white shadow-sm">
             <div className="p-6">
               <div className="flex items-center gap-3">
@@ -481,7 +476,7 @@ export default function WasteSchedulePolandApp() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[28px] border bg-white shadow-sm">
@@ -497,10 +492,8 @@ export default function WasteSchedulePolandApp() {
                 </div>
               ) : (
                 matches.map((item, idx) => (
-                  <motion.div
+                  <div
                     key={`${item.label}-${idx}`}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
                     className="rounded-2xl border p-4"
                   >
                     <div className="space-y-2">
@@ -524,7 +517,7 @@ export default function WasteSchedulePolandApp() {
                         </button>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 ))
               )}
             </div>
