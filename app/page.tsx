@@ -15,6 +15,46 @@ import {
   Building2,
 } from "lucide-react";
 
+type LocationResult = {
+  label: string;
+  lat: string;
+  lon: string;
+  city: string;
+  suburb: string;
+  road: string;
+  houseNumber: string;
+  postcode: string;
+  county: string;
+  state: string;
+  municipality: string;
+  keyCity: string;
+  keySuburb: string;
+  keyMunicipality: string;
+};
+
+type ScheduleItem = {
+  date: string;
+  fraction: string;
+  note?: string;
+};
+
+type SourceLink = {
+  label: string;
+  url: string;
+  type: string;
+};
+
+type ProviderResult =
+  | null
+  | { status: "loading" }
+  | {
+      status: "ok" | "partial" | "source_only" | "error";
+      provider?: { id: string; name: string };
+      message?: string;
+      schedule?: ScheduleItem[];
+      sourceLinks?: SourceLink[];
+    };
+
 const FRACTION_LABELS: Record<string, string> = {
   mixed: "Zmieszane",
   bio: "Bio",
@@ -87,45 +127,6 @@ const ADDRESS_FALLBACKS = [
   },
 ];
 
-type LocationResult = {
-  label: string;
-  lat: string;
-  lon: string;
-  city: string;
-  suburb: string;
-  road: string;
-  houseNumber: string;
-  postcode: string;
-  county: string;
-  state: string;
-  municipality: string;
-  keyCity: string;
-  keySuburb: string;
-  keyMunicipality: string;
-};
-
-type ScheduleItem = {
-  date: string;
-  fraction: string;
-  note?: string;
-};
-
-type SourceLink = {
-  label: string;
-  url: string;
-  type: string;
-};
-
-type ProviderResult =
-  | null
-  | { status: "loading" }
-  | {
-      status: "ok" | "partial" | "error";
-      message?: string;
-      schedule?: ScheduleItem[];
-      sourceLinks?: SourceLink[];
-    };
-
 function slugify(value: string) {
   return (value || "")
     .toLowerCase()
@@ -179,7 +180,7 @@ async function geocodeAddress(query: string): Promise<LocationResult[]> {
       return data.results;
     }
   } catch {
-    // fallback niżej
+    // fallback lokalny
   }
 
   const normalizedInput = slugify(cleaned);
@@ -188,25 +189,7 @@ async function geocodeAddress(query: string): Promise<LocationResult[]> {
     item.needles.some((needle) => normalizedInput.includes(slugify(needle)))
   ).map((item) => item.result);
 
-  if (localMatches.length) return localMatches;
-
-  const tail = cleaned
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean)
-    .slice(-1)[0];
-
-  if (tail) {
-    const cityMatches = ADDRESS_FALLBACKS.filter((item) =>
-      [item.result.city, item.result.municipality, item.result.suburb]
-        .filter(Boolean)
-        .some((v) => slugify(v) === slugify(tail))
-    ).map((item) => item.result);
-
-    if (cityMatches.length) return cityMatches;
-  }
-
-  return [];
+  return localMatches;
 }
 
 async function fetchSchedule(location: LocationResult) {
@@ -261,9 +244,17 @@ function ResultBadge({ status }: { status: string }) {
     );
   }
 
+  if (status === "source_only") {
+    return (
+      <Pill variant="soft">
+        <ExternalLink size={14} /> Źródła publiczne
+      </Pill>
+    );
+  }
+
   return (
     <Pill variant="soft">
-      <AlertCircle size={14} /> Wymaga integracji źródła
+      <AlertCircle size={14} /> Częściowa obsługa
     </Pill>
   );
 }
@@ -318,33 +309,16 @@ export default function WasteSchedulePolandApp() {
 
     try {
       const results = await geocodeAddress(query);
+      setMatches(results);
 
-      const normalizedInput = slugify(query || "");
-      const directFallbacks = ADDRESS_FALLBACKS.filter((item) =>
-        item.needles.some((needle) => normalizedInput.includes(slugify(needle)))
-      ).map((item) => item.result);
-
-      const finalResults = results.length ? results : directFallbacks;
-      setMatches(finalResults);
-
-      if (!finalResults.length) {
+      if (!results.length) {
         setError(
           "Nie udało się potwierdzić adresu w geokoderze. Spróbuj dodać miasto lub wpisz adres w formacie: ulica numer, kod pocztowy, miejscowość."
         );
       }
     } catch (e: any) {
-      const normalizedInput = slugify(query || "");
-      const directFallbacks = ADDRESS_FALLBACKS.filter((item) =>
-        item.needles.some((needle) => normalizedInput.includes(slugify(needle)))
-      ).map((item) => item.result);
-
-      if (directFallbacks.length) {
-        setMatches(directFallbacks);
-        setError("");
-      } else {
-        setError(e?.message || "Wystąpił błąd.");
-        setMatches([]);
-      }
+      setError(e?.message || "Wystąpił błąd.");
+      setMatches([]);
     } finally {
       setLoading(false);
     }
@@ -366,6 +340,8 @@ export default function WasteSchedulePolandApp() {
       });
     }
   }
+
+  const links = providerResult && "sourceLinks" in providerResult ? providerResult.sourceLinks ?? [] : [];
 
   return (
     <div className="page">
@@ -411,9 +387,8 @@ export default function WasteSchedulePolandApp() {
                   <div>
                     <div className="info-title">Jak to działa</div>
                     <div className="info-text">
-                      Aplikacja wysyła adres do backendu, backend geokoduje lokalizację, dobiera źródło publiczne i
-                      zwraca harmonogram albo oficjalne linki źródłowe. Dla części gmin nadal mogą być potrzebne
-                      dodatkowe parsery HTML lub PDF.
+                      Frontend wysyła adres do backendu. Backend geokoduje lokalizację, dobiera providera i zwraca
+                      harmonogram albo oficjalne źródła. To baza pod rozwój do pełnej wersji produkcyjnej.
                     </div>
                   </div>
                 </div>
@@ -436,30 +411,29 @@ export default function WasteSchedulePolandApp() {
           <aside className="card">
             <div className="card-inner">
               <h2 className="section-title">Stan projektu</h2>
-              <p className="section-desc">Co już jest gotowe, a co trzeba dołożyć w wersji produkcyjnej.</p>
+              <p className="section-desc">Co już jest gotowe, a co dokładamy dalej.</p>
 
               <div className="info-list">
                 <div className="mini-card">
                   <div className="mini-title">Gotowe teraz</div>
                   <p className="mini-text">
-                    Wyszukiwanie adresu przez backend, normalizacja danych, pobranie harmonogramu lub oficjalnych
-                    źródeł i prezentacja wyniku.
+                    Geokodowanie adresu, backend API, registry providerów, oficjalne źródła oraz pierwszy provider z
+                    pobraniem strony.
                   </p>
                 </div>
 
                 <div className="mini-card">
-                  <div className="mini-title">Do wdrożenia produkcyjnego</div>
+                  <div className="mini-title">Najbliższy krok</div>
                   <p className="mini-text">
-                    Backend proxy, parsery HTML/PDF, cache wyników, baza providerów oraz monitoring zmian na stronach
-                    gmin.
+                    Parser prawdziwych dat i frakcji dla konkretnego źródła, np. COM-D albo Warszawa.
                   </p>
                 </div>
 
                 <div className="mini-card">
                   <div className="mini-title">Realne ograniczenie</div>
                   <p className="mini-text">
-                    Nie każda publiczna strona pozwala wyliczyć harmonogram po samym adresie. Czasem potrzebny jest
-                    rejon, sektor albo numer umowy.
+                    Nie każda gmina udostępnia harmonogram po samym adresie. Czasem potrzebny jest rejon, sektor albo
+                    PDF z mapowaniem ulic.
                   </p>
                 </div>
               </div>
@@ -532,9 +506,12 @@ export default function WasteSchedulePolandApp() {
                       <div className="stack" style={{ gap: 16 }}>
                         <div className="badges">
                           <ResultBadge status={providerResult.status} />
+                          {"provider" in providerResult && providerResult.provider?.name ? (
+                            <Pill variant="outline">{providerResult.provider.name}</Pill>
+                          ) : null}
                         </div>
 
-                        {providerResult.message ? (
+                        {"message" in providerResult && providerResult.message ? (
                           <div className="note-box">
                             <div className="note-box-head">
                               <AlertCircle size={18} />
@@ -546,18 +523,18 @@ export default function WasteSchedulePolandApp() {
                           </div>
                         ) : null}
 
-                        {providerResult.schedule?.length ? (
+                        {"schedule" in providerResult && providerResult.schedule?.length ? (
                           <ScheduleList items={providerResult.schedule} />
                         ) : (
                           <div className="empty">
-                            Backend nie zwrócił jeszcze bezpośredniego harmonogramu dla tego adresu.
+                            Ten adres nie ma jeszcze bezpośrednio sparsowanego harmonogramu. Sprawdź zakładkę „Źródła”.
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className="source-list">
-                        {(providerResult.sourceLinks || []).length ? (
-                          (providerResult.sourceLinks || []).map((link, idx) => (
+                        {links.length ? (
+                          links.map((link, idx) => (
                             <a
                               key={`${link.url}-${idx}`}
                               href={link.url}
@@ -597,26 +574,26 @@ export default function WasteSchedulePolandApp() {
 
         <section className="card">
           <div className="card-inner">
-            <h2 className="section-title">Jak rozszerzyć do pełnej wersji</h2>
-            <p className="section-desc">Plan techniczny dla ogólnopolskiej obsługi publicznie dostępnych harmonogramów.</p>
+            <h2 className="section-title">Jak rozwijać tę wersję</h2>
+            <p className="section-desc">Najbardziej sensowna kolejność dalszych prac.</p>
 
             <div className="plan-grid" style={{ marginTop: 18 }}>
               {[
                 {
-                  title: "1. Registry providerów",
-                  text: "Tabela: gmina / operator / typ źródła / URL / parser / sposób mapowania ulic do rejonów.",
+                  title: "1. Provider registry w bazie",
+                  text: "Wyciągnij listę providerów z kodu do bazy lub pliku konfiguracyjnego.",
                 },
                 {
-                  title: "2. Backend proxy",
-                  text: "Endpointy pobierające HTML/PDF po stronie serwera, żeby ominąć CORS i ustabilizować parsowanie.",
+                  title: "2. Pierwszy pełny parser",
+                  text: "Dodaj prawdziwe daty i frakcje dla COM-D albo Warszawy.",
                 },
                 {
-                  title: "3. Parsery źródeł",
-                  text: "Parser HTML, parser PDF tabelarycznych, opcjonalnie OCR dla skanów oraz walidacja dat i frakcji.",
+                  title: "3. Cache backendowy",
+                  text: "Cache po adresie i po źródle, żeby nie pobierać tego samego przy każdym wejściu.",
                 },
                 {
-                  title: "4. Monitoring zmian",
-                  text: "Testy regresyjne i alerty, gdy gmina zmieni layout strony albo podmieni plik harmonogramu.",
+                  title: "4. Pokrycie gmin",
+                  text: "Dodawaj kolejne providery według największego zwrotu: duże miasta i operatorzy wielu gmin.",
                 },
               ].map((item) => (
                 <div key={item.title} className="plan-card">
