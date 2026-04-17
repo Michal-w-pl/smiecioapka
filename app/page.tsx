@@ -376,7 +376,7 @@ export default function WasteSchedulePolandApp() {
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
-       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-[28px] border bg-white shadow-sm">
             <div className="p-6">
               <div className="flex items-center gap-3">
