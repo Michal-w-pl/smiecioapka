@@ -1,47 +1,13 @@
-import { ADDRESS_FALLBACKS } from './fallbacks';
-import { normalizeAddressParts, slugify } from './normalize';
-import { GeocodeResult } from './types';
-
-export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
-  const cleaned = (query || '').trim();
-  if (!cleaned) return [];
-
-  const variants = [
-    cleaned,
-    cleaned.includes('Polska') ? cleaned : `${cleaned}, Polska`,
-  ];
-
-  for (const variant of variants) {
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=pl&limit=5&accept-language=pl&q=${encodeURIComponent(variant)}`;
-    try {
-      const response = await fetch(url, {
-        headers: {
-          Accept: 'application/json',
-          'Accept-Language': 'pl',
-          'User-Agent': 'waste-backend-app/0.1 (contact: replace@example.com)',
-          'Referer': 'http://localhost:3000',
-        },
-        cache: 'no-store',
-      });
-      if (!response.ok) continue;
-      const data = await response.json();
-      const normalized = Array.isArray(data) ? data.map(normalizeAddressParts) : [];
-      if (normalized.length) return normalized;
-    } catch {
-      // try next variant
-    }
-  }
-
-  const normalizedInput = slugify(cleaned);
-  const localMatches = ADDRESS_FALLBACKS.filter((item) =>
-    item.needles.some((needle) => normalizedInput.includes(slugify(needle)))
-  ).map((item) => item.result);
-
-  return localMatches;
-}
-
 import { NormalizedLocation } from "./types";
-import { slugify } from "./utils";
+
+function slugify(value: string) {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 function normalizeAddressParts(place: any): NormalizedLocation {
   const a = place.address || {};
@@ -55,7 +21,7 @@ function normalizeAddressParts(place: any): NormalizedLocation {
   const municipality = a.municipality || a.city || a.town || a.village || "";
 
   return {
-    label: place.display_name,
+    label: place.display_name || "",
     lat: String(place.lat || ""),
     lon: String(place.lon || ""),
     city,
@@ -98,9 +64,11 @@ export async function geocodeAddress(query: string): Promise<NormalizedLocation[
 
       const data = await response.json();
       const normalized = Array.isArray(data) ? data.map(normalizeAddressParts) : [];
-      if (normalized.length) return normalized;
+      if (normalized.length) {
+        return normalized;
+      }
     } catch {
-      // spróbuj kolejny wariant
+      // próbujemy kolejny wariant
     }
   }
 
