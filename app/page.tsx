@@ -587,7 +587,7 @@ export default function WasteSchedulePolandApp() {
                   ) : (
                     <div className="space-y-3">
                       {(providerResult.sourceLinks || []).length ? (
-                        providerResult.sourceLinks.map((link, idx) => (
+                        (providerResult.sourceLinks || []).map((link, idx) => (
                           <a
                             key={`${link.url}-${idx}`}
                             href={link.url}
